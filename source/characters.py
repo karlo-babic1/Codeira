@@ -1,80 +1,113 @@
+import random
+
+
 class Character:
-    def __init__(self, name, health_points, attack_points, defense_points):
+    def __init__(self, name, health_points, max_attack, defense_points):
         self.name = name
         self.health_points = health_points
-        self.attack_points = attack_points
+        self.max_attack = max_attack
         self.defense_points = defense_points
+    
+                
+        
+class Hero(Character):
+    def __init__(self, name, health_points, max_attack, defense_points):
+        super().__init__(name, health_points, max_attack, defense_points)
+        self.level = 1
+        self.experience = 0
         self.combo_strikes = {
             'double' : [], 
             'triple' : [],
         }
-
     
-
+    def get_level(self):
+        return self.level
+    
     def attack(self, enemy):
-        
-        dmg = self.attack_points - enemy.defense_points
-        print(self.combo_strikes)
-        
+        attack = random.randint(1*self.level, self.max_attack)
+        dmg = attack - enemy.defense_points
 
         if len(self.combo_strikes['double']) >= 3:
             dmg = dmg * 2
             self.combo_strikes['double'] = []
             print('Double Damage')
 
-        if len(self.combo_strikes['triple']) >= 5:
+        if len(self.combo_strikes['triple']) >= 3:
             dmg = dmg * 3
             self.combo_strikes['triple'] = []
             print('Triple Damage')
 
         if dmg > 0:
-            enemy.health_points = enemy.health_points - dmg     
-            print(f'You have attacked enemy with {dmg} dmg')
-            print(f'Their current health points are {enemy.health_points}')
-            # Razlika izmedu  helath_points i defense_points ???
+            print(f'Player [{self.name}] attacked enemy [{enemy.name}] with {dmg} damage')
+            enemy.health_points -= dmg
+            if enemy.health_points <= 0:
+                enemy.health_points = 0
+                return
 
             if dmg < 3:
                 self.combo_strikes['double'] = []
                 self.combo_strikes['triple'] = []
-                print('None of special damage has been caused yet.')
-
             if dmg >= 3 and dmg < 5:
                 self.combo_strikes['double'].append(dmg)
-                print("Double damage!!")
-
             else:
                 self.combo_strikes['triple'].append(dmg)
-                print("Triple damage !!!!!!!!")
         
-        if enemy.health_points == 0:
-            print("You won!")
-                
-        
-class Hero(Character):
-    def __init__(self, name, health_points, attack_points, defense_points):
-        super().__init__(name, health_points, attack_points, defense_points)
-        print('change')
+        else:
+            print('Your attack did not penetrate enemies armor ...')
+    
+    def add_experience(self, exp_amount):
+        self.experience += exp_amount
+        if self.experience >= self.level * 10:
+            self.level_up() 
+    
+    def level_up(self):
+        self.experience = 0
+        self.level += 1
+        print(f'Hero [{self.name}] level up !! Now at level {self.level}')
 
 
 class Enemy(Character):
-    def __init__(self, name, health_points, attack_points, defense_points):
-        super().__init__(name, health_points, attack_points, defense_points)
+    def __init__(self, name, health_points, max_attack, defense_points, exp_drop):
+        super().__init__(name, health_points, max_attack, defense_points)
+        self.exp_drop = exp_drop
+        self.dead = False
+    
+    def attack(self, hero):
+        attack = random.randint(1*hero.level, self.max_attack*hero.level)
+        dmg = attack - hero.defense_points
+
+        if dmg > 0:
+            print(f'Enemy [{self.name}] attacked hero [{hero.name}] with {dmg} damage')
+            hero.health_points -= dmg
+        else:
+            print(f'Enemy did not penetrate hero armor')
+
+    
+    def is_dead(self):
+        return self.dead
+    
+    def killed(self, hero_level):
+        self.dead = True
+        final_exp_drop = random.randint(1, self.exp_drop*hero_level)
+        return final_exp_drop
 
 
-hero = Hero('Alex', 50, 10, 30)
-enemy = Enemy('Basic', 40, 1, 3)
+if __name__ == '__main__':
 
-hero.attack(enemy)
-hero.attack(enemy)
-hero.attack(enemy)
-hero.attack(enemy)
-hero.attack(enemy)
-hero.attack(enemy)
-hero.attack(enemy)
-hero.attack(enemy)
-hero.attack(enemy)
-hero.attack(enemy)
-hero.attack(enemy)
+    hero = Hero('Alex', 50, 10, 30)
+    enemy = Enemy('Basic', 40, 1, 3)
+
+    hero.attack(enemy)
+    hero.attack(enemy)
+    hero.attack(enemy)
+    hero.attack(enemy)
+    hero.attack(enemy)
+    hero.attack(enemy)
+    hero.attack(enemy)
+    hero.attack(enemy)
+    hero.attack(enemy)
+    hero.attack(enemy)
+    hero.attack(enemy)
 
 
 
