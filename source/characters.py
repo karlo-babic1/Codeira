@@ -5,6 +5,7 @@ class Character:
     def __init__(self, name, health_points, max_attack, defense_points):
         self.name = name
         self.health_points = health_points
+        self.max_hp = health_points
         self.max_attack = max_attack
         self.defense_points = defense_points
     
@@ -20,13 +21,10 @@ class Hero(Character):
             'triple' : [],
         }
     
-    def get_level(self):
-        return self.level
-    
-    def attack(self, enemy):
+    def __calculate_attack_damage(self, enemy_defense_points):
         attack = random.randint(1*self.level, self.max_attack)
-        dmg = attack - enemy.defense_points
-
+        dmg = attack - enemy_defense_points
+        
         if len(self.combo_strikes['double']) >= 3:
             dmg = dmg * 2
             self.combo_strikes['double'] = []
@@ -36,13 +34,18 @@ class Hero(Character):
             dmg = dmg * 3
             self.combo_strikes['triple'] = []
             # print('Triple Damage')
+        
+        return dmg
+    
+    def attack(self, enemy):
+        dmg = self.__calculate_attack_damage(enemy.defense_points)
 
         if dmg > 0:
             print(f'Player [{self.name}] attacked enemy [{enemy.name}] with {dmg} damage                                      ', end='\r')
             enemy.health_points -= dmg
             if enemy.health_points <= 0:
                 enemy.health_points = 0
-                return
+                return dmg
 
             if dmg < 3:
                 self.combo_strikes['double'] = []
@@ -54,7 +57,9 @@ class Hero(Character):
         
         else:
             print('Your attack did not penetrate enemies armor ...                                                            ', end='\r')
-            pass
+            dmg = 0
+
+        return dmg
     
     def add_experience(self, exp_amount):
         self.experience += exp_amount
@@ -64,6 +69,9 @@ class Hero(Character):
     def level_up(self):
         self.experience = 0
         self.level += 1
+        self.max_attack *= self.level
+        self.health_points *= self.level
+        self.defense_points *= self.level
         print(f'Hero [{self.name}] level up !! Now at level {self.level}')
 
 
@@ -74,7 +82,7 @@ class Enemy(Character):
         self.dead = False
     
     def attack(self, hero):
-        attack = random.randint(1*hero.level, self.max_attack*hero.level)
+        attack = random.randint(1, self.max_attack)
         dmg = attack - hero.defense_points
 
         if dmg > 0:
@@ -82,13 +90,17 @@ class Enemy(Character):
             hero.health_points -= dmg
         else:
             print(f'Enemy did not penetrate hero armor                                                                        ', end='\r')
-            pass
+            dmg = 0
+
+        return dmg
+    
+    def take_damage(self, damage):
+        self.health_points - damage
     
     def stronger(self, hero_level):
         self.max_attack = self.max_attack * hero_level
         self.defense_points = self.defense_points * hero_level
         self.exp_drop = self.exp_drop * hero_level
-
     
     def is_dead(self):
         return self.dead

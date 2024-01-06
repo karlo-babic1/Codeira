@@ -40,10 +40,25 @@ def print_intro():
     input(f'{"Press Enter to continue ..." : ^120}')
     clear_scr()
 
+def generate_healthbar(current_health, max_health, bar_width=20):
+    full_char = chr(0x2593)
+    empty_char = chr(0x2591)
+
+    # Calculate the width of each unit of health
+    unit_width = max_health / bar_width
+
+    # Calculate the number of filled and empty characters
+    filled_width = int(current_health / unit_width)
+    empty_width = bar_width - filled_width
+
+    # Generate the health bar string
+    health_bar = f'{full_char * filled_width}{empty_char * empty_width}'
+
+    return health_bar
 
 def print_hero_details(hero):
     print(f"{'---------------------------------------------------------------------------------------------' : ^140}")
-    print(f'{"Hero details" : ^140}')
+    print(f'{"HERO" : ^140}')
     print(f'{"Name: " + hero.name: ^140}')
     print(f'{"Health points: " + str(hero.health_points) : ^129}')
     print(f'{"Level: " + str(hero.level) : ^137}')
@@ -53,7 +68,7 @@ def print_hero_details(hero):
 
 def print_enemy_info(enemy):
     print(f"{'---------------------------------------------------------------------------------------------' : ^140}")
-    print(f'{"Enemy details" : ^140}')
+    print(f'{"ENEMY" : ^140}')
     print(f'{"Name: " + enemy.name: ^140}')
     print(f'{"Health points: " + str(enemy.health_points) : ^129}')
     print(f'{"Max Attack: " + str(enemy.max_attack) : ^137}')
@@ -61,32 +76,38 @@ def print_enemy_info(enemy):
     print(f"{'---------------------------------------------------------------------------------------------' : ^140}")
     print()
 
-def print_fight_status(hero, enemy):
-    combined_line = f"{'-' * 140 : ^140}"
+def print_fight_status(hero, enemy, comment=''):
+    clear_scr()
+    dashed_line = f"{'-' * 140 : ^140}"
 
-    hero_line = f'{"Hero details" : ^70}' + f'{"Enemy details" : ^70}'
+    hero_line = f'{"HERO" : ^70}' + f'{"ENEMY" : ^70}'
     name_line = f'{"Name: " + hero.name : ^70}' + f'{"Name: " + enemy.name : ^70}'
-    health_line = f'{"Health points: " + str(hero.health_points) : ^70}' + f'{"Health points: " + str(enemy.health_points) : ^70}'
-    level_exp_line = f'{"Level: " + str(hero.level) : ^70}' + f'{"Max Attack: " + str(enemy.max_attack) : ^70}'
-    armor_line = f'{"Experience: " + str(hero.experience) : ^70}' + f'{"Armor: " + str(enemy.defense_points) : ^70}'
+    healthbar_line = f'{str(generate_healthbar(hero.health_points, hero.max_hp)) : ^70}' + f'{str(generate_healthbar(enemy.health_points, enemy.max_hp)) : ^70}'
+    health_line = f'{"Health points: " + str(hero.health_points) + " / " + str(hero.max_hp) : ^70}' + f'{"Health points: " + str(enemy.health_points) + " / " + str(enemy.max_hp) : ^70}'
+    level_exp_line = f'{"Max Attack: " + str(hero.max_attack) : ^70}' + f'{"Max Attack: " + str(enemy.max_attack) : ^70}'
+    armor_line = f'{"Armor: " + str(hero.defense_points) : ^70}' + f'{"Armor: " + str(enemy.defense_points) : ^70}'
 
-    combined_status = combined_line + '\n' + hero_line + '\n' + name_line + '\n' + health_line + '\n' + level_exp_line + '\n' + armor_line + '\n' + combined_line
+    commentary_line = f"{comment : ^140}"
+
+    combined_status = dashed_line + '\n' + hero_line + '\n' + healthbar_line + '\n' + name_line + '\n' + health_line + '\n' + level_exp_line + '\n' + armor_line + '\n' + dashed_line + '\n' + commentary_line+ '\n' + dashed_line
     print(combined_status, flush=True)
+
 
 
 class GameEngine:
     def __init__(self) -> None:
-        self.hero = Hero('Alex', health_points=50, max_attack=10, defense_points=30) # Create instance of our Hero
+        self.hero = Hero('Alex', health_points=50, max_attack=20, defense_points=5) # Create instance of our Hero
+        self.enemy = None
         self.walk_fight_threshold = 0.8 # This is 80% chance that user will encounter a combat and 20% chance he will walk without a fight
     
     def create_enemies(self): # Create enemies and make them stronger according to Hero level
-        skeleton = Enemy('Skeleton', health_points=40, max_attack=1, defense_points=1, exp_drop=3)
-        grunt = Enemy('Grunt', health_points=60, max_attack=3, defense_points=2, exp_drop=5)
+        skeleton = Enemy('Skeleton', health_points=40, max_attack=9, defense_points=5, exp_drop=4)
+        grunt = Enemy('Grunt', health_points=60, max_attack=12, defense_points=6, exp_drop=9)
 
         enemies = [skeleton, grunt]
         ready_enemies = []
         for enemy in enemies:
-            enemy.stronger(self.hero.get_level())
+            enemy.stronger(self.hero.level)
             ready_enemies.append(enemy)
         return ready_enemies
     
@@ -111,15 +132,15 @@ class GameEngine:
         if random_action <= self.walk_fight_threshold:
             # If random_action is below or equal to threshold
             # We create enemies and get a list of possible ones, then we pick one from the list
-            enemy = random.choice(self.create_enemies())
+            self.enemy = random.choice(self.create_enemies())
             # Clear the screen
             clear_scr()
             # Print the encounter and enemy info
-            print(f'Player [{self.hero.name}] has encountered enemy [{enemy.name}]')
+            print(f'Player [{self.hero.name}] has encountered enemy [{self.enemy.name}]')
             print()
             # Sleep for 2 seconds and start a fight
             time.sleep(2)
-            self.fight_enemy(enemy)
+            self.fight_enemy()
             
             
         # If the random_action is above the threshold, we walk away for now
@@ -129,36 +150,44 @@ class GameEngine:
             input('Press Enter to continue ...')
             clear_scr()
     
-    def fight_enemy(self, enemy):
-        # We create another loop for the fight and at each iteration we check is the enemy is_dead
-            while not enemy.is_dead():
-                clear_scr()
-                print_fight_status(self.hero, enemy)
-                if enemy.health_points <= 0:
+    def fight_enemy(self):
+        # We create another loop for the fight
+            while True:
+                # We check if the hero has enough HP to continue fighting
+                if self.hero.health_points <= 0:
+                    print('You are dead !!')
+                    break
+                # Then we attack the enemy
+                hero_damage = self.hero.attack(self.enemy)
+                self.enemy.take_damage(hero_damage)
+                if self.enemy.health_points <= 0:
                     # If the enemy HP drops to or below 0 we kill the enemy
                     # Enemy drops us (returns) experience for now, it will drop items and gold as well
-                    exp_gain = enemy.killed(self.hero.get_level())
+                    exp_gain = self.enemy.killed(self.hero.level)
                     self.hero.add_experience(exp_gain)
-                    # clear_scr()
-                    print(f'Player wins the fight. Player gained {exp_gain} experience.')
+                    print_fight_status(self.hero, self.enemy, comment=f'Player wins the fight. Player gained {exp_gain} experience.')
                     print()
                     input('Press Enter to continue ...')
                     clear_scr()
+                    # We set the current enemy to None (as this one died)
+                    self.enemy = None
                     # We break out of the inner "fight" loop and that gets us back at the "main menu" loop
                     break
 
                 # If the enemy HP is not below or equal to 0 this code runs
-                # First we attack the enemy
-                self.hero.attack(enemy)
-                # We pause the execution for 0.5 sec to make it more interesting
+                print_fight_status(self.hero, self.enemy, comment=f'[{self.hero.name}] > > > > > > > > > > > > > >  {hero_damage} DMG  > > > > > > > > > > > > > > [{self.enemy.name}]')
+                # We pause the execution for 1 sec to make it more interesting
                 time.sleep(1)
                 # Then the enemy attacks hero
-                enemy.attack(self.hero)
-
+                enemy_damage = self.enemy.attack(self.hero)
+                print_fight_status(self.hero, self.enemy, comment=f'[{self.hero.name}] < < < < < < < < < < < < < <  {enemy_damage} DMG  < < < < < < < < < < < < < < [{self.enemy.name}]')
+                # Then we pause one more time
                 time.sleep(1)
                 
 
     def run_game(self):
+        # Main game loop
+
         print_intro()
         while True:
             main_action = self.main_action()
