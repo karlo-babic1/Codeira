@@ -30,15 +30,15 @@ class Hero(Character):
         if len(self.combo_strikes['double']) >= 3:
             dmg = dmg * 2
             self.combo_strikes['double'] = []
-            print('Double Damage')
+            # print('Double Damage')
 
         if len(self.combo_strikes['triple']) >= 3:
             dmg = dmg * 3
             self.combo_strikes['triple'] = []
-            print('Triple Damage')
+            # print('Triple Damage')
 
         if dmg > 0:
-            print(f'Player [{self.name}] attacked enemy [{enemy.name}] with {dmg} damage')
+            print(f'Player [{self.name}] attacked enemy [{enemy.name}] with {dmg} damage                                      ', end='\r')
             enemy.health_points -= dmg
             if enemy.health_points <= 0:
                 enemy.health_points = 0
@@ -53,7 +53,8 @@ class Hero(Character):
                 self.combo_strikes['triple'].append(dmg)
         
         else:
-            print('Your attack did not penetrate enemies armor ...')
+            print('Your attack did not penetrate enemies armor ...                                                            ', end='\r')
+            pass
     
     def add_experience(self, exp_amount):
         self.experience += exp_amount
@@ -77,10 +78,16 @@ class Enemy(Character):
         dmg = attack - hero.defense_points
 
         if dmg > 0:
-            print(f'Enemy [{self.name}] attacked hero [{hero.name}] with {dmg} damage')
+            print(f'Enemy [{self.name}] attacked hero [{hero.name}] with {dmg} damage                                         ', end='\r')
             hero.health_points -= dmg
         else:
-            print(f'Enemy did not penetrate hero armor')
+            print(f'Enemy did not penetrate hero armor                                                                        ', end='\r')
+            pass
+    
+    def stronger(self, hero_level):
+        self.max_attack = self.max_attack * hero_level
+        self.defense_points = self.defense_points * hero_level
+        self.exp_drop = self.exp_drop * hero_level
 
     
     def is_dead(self):
